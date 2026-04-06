@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>BioMedOS</title>
+  <script src="https://unpkg.com/vis-network@9.1.9/dist/vis-network.min.js"></script>
+  <style>
+    :root{--bg:#f4f0e8;--panel:rgba(255,252,247,.92);--ink:#182625;--muted:#5f6e6c;--line:rgba(24,38,37,.12);--accent:#0f766e;--accent2:#b45309;--shadow:0 18px 36px rgba(18,30,30,.12)}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;font:15px/1.45 "IBM Plex Sans","Segoe UI",sans-serif;color:var(--ink);background:radial-gradient(circle at top left,rgba(15,118,110,.18),transparent 28%),radial-gradient(circle at bottom right,rgba(180,83,9,.14),transparent 24%),linear-gradient(145deg,#f5f1e9,#ece6dc)}
+    button,input,textarea,select{font:inherit}button{cursor:pointer}
+    .shell{display:grid;grid-template-rows:auto 1fr;min-height:100vh}.top{display:flex;justify-content:space-between;gap:1rem;align-items:end;padding:1.35rem 1.35rem 1rem}.hero h1{margin:0;font:700 clamp(2rem,4vw,3.2rem)/1 "Space Grotesk","Segoe UI",sans-serif;letter-spacing:-.04em}.hero p{margin:.45rem 0 0;max-width:74ch;color:var(--muted)}
+    .metrics{display:flex;flex-wrap:wrap;gap:.6rem}.metric,.panel,.box{background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow)}.metric{min-width:108px;border-radius:14px;padding:.8rem .9rem}.metric label{display:block;font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}.metric strong{display:block;margin-top:.15rem;font-size:1.08rem}
+    .work{display:grid;grid-template-columns:minmax(0,1.16fr) minmax(360px,.84fr);gap:1rem;padding:0 1.35rem 1.35rem}.panel{border-radius:20px;overflow:hidden}.head{display:flex;justify-content:space-between;gap:1rem;align-items:center;padding:1rem;border-bottom:1px solid var(--line)}.head h2,.head h3{margin:0;font-size:1.02rem}.head p{margin:.2rem 0 0;color:var(--muted);font-size:.92rem}
+    .row,.tabs,.chips,.badges,.controls{display:flex;flex-wrap:wrap;gap:.55rem}.controls input,.controls button,.tabs button,.chip{border-radius:999px}.primary,.tabs .on{background:linear-gradient(135deg,var(--accent),#164e63);color:#fff;border:0;padding:.78rem .95rem;font-weight:700}.ghost,.tabs button,.chip{background:rgba(255,255,255,.76);border:1px solid var(--line);padding:.78rem .95rem;color:var(--ink)}
+    input,textarea,select{width:100%;padding:.82rem .92rem;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.84);color:var(--ink)}textarea{resize:vertical;min-height:108px}
+    .graph{display:grid;grid-template-columns:minmax(0,1fr) 320px;min-height:76vh}.net{min-height:64vh;background:linear-gradient(rgba(255,255,255,.45),rgba(255,255,255,.45)),linear-gradient(90deg,rgba(15,118,110,.04) 1px,transparent 1px),linear-gradient(rgba(15,118,110,.04) 1px,transparent 1px);background-size:auto,28px 28px,28px 28px}.side{display:grid;grid-template-rows:auto auto 1fr;border-left:1px solid var(--line)}.sec{padding:1rem;border-bottom:1px solid var(--line)}.grid{display:flex;flex-wrap:wrap;gap:.45rem}.pill{display:inline-flex;align-items:center;gap:.35rem;padding:.36rem .6rem;border-radius:999px;background:rgba(255,255,255,.82);border:1px solid var(--line);font-size:.8rem}.pill input{width:auto;margin:0}.detail{padding:1rem;overflow:auto}.kv,.box{border-radius:16px;padding:.8rem .9rem}.kv{background:rgba(255,255,255,.82);border:1px solid var(--line);margin-bottom:.55rem}.kv label{display:block;font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.2rem}.mono{font-family:"IBM Plex Mono",Consolas,monospace}
+    .right{display:grid;grid-template-rows:auto 1fr;min-height:76vh}.tabs{padding:1rem 1rem 0}.tabs button.on{border-color:transparent}.panes{padding:1rem;overflow:auto}.pane{display:none;gap:1rem}.pane.on{display:grid}.split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.stream,.box{background:rgba(255,255,255,.82)}.stream{min-height:260px;padding:1rem;border-radius:18px;border:1px solid var(--line);overflow:auto}.status{padding:.7rem .9rem;border-radius:14px;background:rgba(15,118,110,.08);border:1px solid rgba(15,118,110,.18)}.badge{display:inline-flex;padding:.32rem .58rem;border-radius:999px;background:rgba(24,38,37,.08);font-size:.8rem}
+    table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:.68rem .55rem;border-bottom:1px solid var(--line);vertical-align:top}th button{padding:0;border:0;background:none;font-weight:700;color:inherit}.list{display:grid;gap:.6rem}
+    @media (max-width:1180px){.work,.graph,.split{grid-template-columns:1fr}.side{border-left:0;border-top:1px solid var(--line)}}@media (max-width:720px){.top,.work{padding-left:1rem;padding-right:1rem}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="top">
+      <div class="hero">
+        <h1>BioMedOS</h1>
+        <p>Local-first biomedical intelligence with graph reasoning, PubMed RAG, graph ML, clinical support, and multi-agent workflows.</p>
+      </div>
+      <div class="metrics">
+        <div class="metric"><label>Ollama</label><strong id="m-ollama">...</strong></div>
+        <div class="metric"><label>Nodes</label><strong id="m-nodes">0</strong></div>
+        <div class="metric"><label>Edges</label><strong id="m-edges">0</strong></div>
+        <div class="metric"><label>Vectors</label><strong id="m-vectors">0</strong></div>
+      </div>
+    </header>
+    <main class="work">
+      <section class="panel">
+        <div class="head">
+          <div><h2>Interactive Knowledge Graph</h2><p>Color by node type, size by degree, double-click to explore one-hop neighborhoods.</p></div>
+          <div class="controls">
+            <input id="graph-q" list="node-list" placeholder="Search EGFR, fibrosis, gefitinib">
+            <datalist id="node-list"></datalist>
+            <button class="primary" id="graph-focus" type="button">Focus</button>
+            <button class="ghost" id="graph-reset" type="button">Reset</button>
+          </div>
+        </div>
+        <div class="graph">
+          <div id="network" class="net"></div>
+          <aside class="side">
+            <div class="sec">
+              <h3>Node Filters</h3><div class="grid" id="node-filters"></div>
+              <h3>Edge Filters</h3><div class="grid" id="edge-filters"></div>
+            </div>
+            <div class="sec"><h3>Selection</h3><p id="sel-note" style="margin:.3rem 0 0;color:var(--muted)">Click a node to inspect evidence and neighbors.</p></div>
+            <div class="detail" id="details"><div class="kv"><label>Ready</label><div>Graph loaded. Search for a node or click one in the network.</div></div></div>
+          </aside>
+        </div>
+      </section>
+      <section class="panel right">
+        <div class="tabs" id="tabs">
+          <button class="on" data-tab="chat" type="button">Chat</button>
+          <button data-tab="pred" type="button">Predictions</button>
+          <button data-tab="clin" type="button">Clinical</button>
+          <button data-tab="ana" type="button">Analysis</button>
+          <button data-tab="rev" type="button">Review</button>
+        </div>
+        <div class="panes">
+          <section class="pane on" id="tab-chat">
+            <div class="box">
+              <h3>Streaming Multi-Agent Chat</h3>
+              <textarea id="chat-q">What drugs target EGFR, are there DDIs with metformin, and what pathways are implicated in lung cancer?</textarea>
+              <div class="row"><button class="primary" id="chat-send" type="button">Ask BioMedOS</button><button class="ghost" id="chat-clear" type="button">Clear</button></div>
+              <div class="chips" id="chips"></div>
+            </div>
+            <div class="box">
+              <div class="badges" id="badges"></div>
+              <div class="status" id="chat-status">Waiting for a query.</div>
+              <div class="stream" id="chat-out"></div>
+            </div>
+          </section>
+          <section class="pane" id="tab-pred">
+            <div class="box">
+              <h3>Link Prediction Explorer</h3>
+              <div class="split">
+                <input id="pred-source" value="EGFR">
+                <select id="pred-type"><option>Disease</option><option>Drug</option><option>Pathway</option><option>Phenotype</option></select>
+                <select id="pred-model"><option value="graphsage">GraphSAGE</option><option value="rgcn">R-GCN</option><option value="node2vec">Node2Vec</option></select>
+                <input id="pred-topk" type="number" min="1" max="50" value="10">
+              </div>
+              <div class="row"><button class="primary" id="pred-run" type="button">Predict</button></div>
+            </div>
+            <div class="box">
+              <div class="status" id="pred-status">No prediction run yet.</div>
+              <div id="pred-metrics" style="color:var(--muted);margin:.6rem 0"></div>
+              <table><thead><tr><th><button type="button" data-sort="target_name">Target</button></th><th><button type="button" data-sort="score">Score</button></th><th><button type="button" data-sort="target_type">Type</button></th></tr></thead><tbody id="pred-body"></tbody></table>
+            </div>
+          </section>
+          <section class="pane" id="tab-clin">
+            <div class="split">
+              <div class="box"><h3>DDI Checker</h3><input id="ddi-drugs" value="gefitinib, metformin"><input id="ddi-cond" placeholder="Optional conditions, comma separated"><div class="row"><button class="primary" id="ddi-run" type="button">Check Interactions</button></div><div class="list" id="ddi-out"></div></div>
+              <div class="box"><h3>Differential Diagnosis</h3><textarea id="dx-q">Progressive cough, weight loss, dyspnea, smoking history, EGFR family concern</textarea><div class="row"><button class="primary" id="dx-run" type="button">Rank Diagnoses</button><button class="ghost" id="hpo-run" type="button">Map HPO Terms</button></div><div class="list" id="dx-out"></div></div>
+            </div>
+          </section>
+          <section class="pane" id="tab-ana">
+            <div class="box"><h3>Pathway and Network Analysis</h3><textarea id="ana-genes">EGFR, ALK, TP53, BRCA1, LOXL2</textarea><div class="row"><button class="primary" id="ana-run" type="button">Run Enrichment</button><button class="ghost" id="com-run" type="button">Communities</button><button class="ghost" id="tar-run" type="button">Target Ranking</button></div></div>
+            <div class="split"><div class="box"><h3>Enrichment</h3><div class="list" id="ana-out"></div></div><div class="box"><h3>Communities and Targets</h3><div class="list" id="ana-side"></div></div></div>
+          </section>
+          <section class="pane" id="tab-rev">
+            <div class="box"><h3>Narrative Review Writer</h3><textarea id="rev-q">EGFR signaling in lung cancer and fibrosis</textarea><div class="row"><button class="primary" id="rev-run" type="button">Generate Review</button></div></div>
+            <div class="box"><div class="status" id="rev-status">No review generated yet.</div><div class="stream" id="rev-out"></div></div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script>
+    const S={health:null,graph:{nodes:[],edges:[],nodeTypes:[],edgeTypes:[]},network:null,nodes:null,edges:null,nodeOn:new Set(),edgeOn:new Set(),hood:null,preds:[],sort:{key:"score",desc:true}};
+    const COLORS={Gene:"#0f766e",Protein:"#2563eb",Disease:"#b91c1c",Drug:"#8b5cf6",Compound:"#0891b2",Pathway:"#ca8a04",Phenotype:"#db2777",CellType:"#64748b",Tissue:"#16a34a",SideEffect:"#ea580c",ClinicalTrial:"#1d4ed8",Publication:"#6d28d9"};
+    const EXAMPLES=["Find repurposing candidates for fibrosis and explain the evidence","What drugs target EGFR and what pathways connect them to lung cancer?","Check DDIs for gefitinib, metformin, and olaparib","Generate a narrative review on LOXL2 in fibrosis","Produce a differential diagnosis for chronic cough and dyspnea"];
+    const $=id=>document.getElementById(id);
+    const esc=s=>String(s??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
+    const csv=s=>String(s).split(",").map(v=>v.trim()).filter(Boolean);
+    const items=v=>Array.isArray(v)?v.map(x=>String(x)).filter(Boolean).join(", "):"";
+    const card=(t,b)=>`<div class="kv"><label>${esc(t)}</label><div>${b}</div></div>`;
+    const listCard=(t,b)=>`<div class="kv"><div><strong>${esc(t)}</strong></div><div style="color:var(--muted)">${esc(b)}</div></div>`;
+    const md=t=>`<div>${esc(t).replace(/^### (.*)$/gm,"<h3>$1</h3>").replace(/^## (.*)$/gm,"<h2>$1</h2>").replace(/^# (.*)$/gm,"<h1>$1</h1>").replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/`([^`]+)`/g,"<code>$1</code>").replace(/^- (.*)$/gm,"<li>$1</li>").replace(/\n\n/g,"</p><p>").replace(/\n/g,"<br>")}</div>`.replace(/<li>/g,"<ul><li>").replace(/<\/li>(?!.*<li>)/g,"</li></ul>");
+    async function j(url,opt){const r=await fetch(url,opt);if(!r.ok)throw new Error(await r.text()||r.statusText);return r.json()}
+    function errMessage(error){return error instanceof Error?error.message:String(error)}
+    function initTabs(){ $("tabs").onclick=e=>{const b=e.target.closest("button[data-tab]");if(!b)return;document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("on"));document.querySelectorAll(".pane").forEach(x=>x.classList.remove("on"));b.classList.add("on");$(`tab-${b.dataset.tab}`).classList.add("on")} }
+    function initChips(){ $("chips").innerHTML=EXAMPLES.map(q=>`<button class="chip" type="button">${esc(q)}</button>`).join("");$("chips").onclick=e=>{const b=e.target.closest("button");if(b)$("chat-q").value=b.textContent||""} }
+    async function health(){try{S.health=await j("/health");$("m-ollama").textContent=S.health.ollama?"online":"offline";$("m-nodes").textContent=S.health.graph.nodes;$("m-edges").textContent=S.health.graph.edges;$("m-vectors").textContent=S.health.vector_store_docs}catch{$("m-ollama").textContent="error"}}
+    async function loadGraph(){const p=await j("/graph/network");S.graph={nodes:p.nodes||[],edges:p.edges||[],nodeTypes:p.node_types||[],edgeTypes:p.edge_types||[]};S.nodeOn=new Set(S.graph.nodeTypes);S.edgeOn=new Set(S.graph.edgeTypes);$("node-list").innerHTML=S.graph.nodes.map(n=>`<option value="${esc(n.label||n.name||n.id)}"></option>`).join("");$("node-filters").innerHTML=S.graph.nodeTypes.map(t=>pill(t,"node")).join("");$("edge-filters").innerHTML=S.graph.edgeTypes.map(t=>pill(t,"edge")).join("");$("node-filters").onchange=filterChange;$("edge-filters").onchange=filterChange;net()}
+    const pill=(t,k)=>`<label class="pill"><input type="checkbox" data-kind="${k}" value="${esc(t)}" checked><span>${esc(t)}</span></label>`;
+    function filterChange(e){const x=e.target;if(!(x instanceof HTMLInputElement))return;const set=x.dataset.kind==="node"?S.nodeOn:S.edgeOn;x.checked?set.add(x.value):set.delete(x.value);paint()}
+    function net(){S.nodes=new vis.DataSet([]);S.edges=new vis.DataSet([]);S.network=new vis.Network($("network"),{nodes:S.nodes,edges:S.edges},{interaction:{hover:true},physics:{barnesHut:{gravitationalConstant:-12000,springLength:140,damping:.32}},nodes:{shape:"dot",font:{face:"IBM Plex Sans",size:15,color:"#102422"}},edges:{color:{color:"rgba(24,39,38,.24)",highlight:"#0f766e"},smooth:{type:"dynamic"}}});S.network.on("click",p=>p.nodes[0]&&detail(p.nodes[0]));S.network.on("doubleClick",p=>p.nodes[0]&&hood(p.nodes[0]));paint()}
+    function paint(){const ns=S.graph.nodes.filter(n=>S.nodeOn.has(n.node_type)).filter(n=>!S.hood||S.hood.has(n.id)).map(n=>({id:n.id,label:n.label||n.name||n.id,title:`${n.node_type}: ${n.label||n.name||n.id}`,value:Math.max(12,Math.round(10+9*Math.log1p(Number(n.degree||1)))),color:COLORS[n.node_type]||"#64748b"}));const ids=new Set(ns.map(n=>n.id));const es=S.graph.edges.filter(e=>S.edgeOn.has(e.edge_type)&&ids.has(e.from)&&ids.has(e.to)).map(e=>({id:e.id,from:e.from,to:e.to,label:e.label,title:e.details||e.label}));S.nodes.clear();S.edges.clear();S.nodes.add(ns);S.edges.add(es)}
+    async function detail(id){const p=await j(`/graph/node/${encodeURIComponent(id)}`);$("sel-note").textContent=`${p.neighbors.length} neighbors and ${p.edges.length} edges loaded.`;const props=Object.entries(p.node.properties||{}).map(([k,v])=>card(k,esc(Array.isArray(v)?v.join(", "):typeof v==="object"?JSON.stringify(v):v))).join("");const neigh=p.neighbors.slice(0,10).map(n=>card("Neighbor",`${esc(n.name)} (${esc(n.node_type)})`)).join("");const edges=p.edges.slice(0,8).map(e=>card(e.edge_type,`${esc(e.source_id)} -> ${esc(e.target_id)} (${Number(e.score).toFixed(2)})`)).join("");$("details").innerHTML=[card("Name",esc(p.node.name)),card("ID",`<span class="mono">${esc(p.node.id)}</span>`),card("Type",esc(p.node.node_type)),card("Sources",esc((p.node.sources||[]).join(", ")||"none")),props,neigh,edges].join("");if(S.network){S.network.selectNodes([id]);S.network.focus(id,{scale:1.15,animation:true})}}
+    async function hood(id){const p=await j(`/graph/neighbors/${encodeURIComponent(id)}`);S.hood=new Set([id,...p.neighbors.map(n=>n.id)]);paint();if(S.network)S.network.fit({nodes:[...S.hood],animation:true});detail(id)}
+    function graphControls(){ $("graph-focus").onclick=async()=>{const q=$("graph-q").value.trim().toLowerCase();const m=S.graph.nodes.find(n=>(n.label||n.name||"").toLowerCase()===q||String(n.id).toLowerCase()===q);if(m)detail(m.id);else $("sel-note").textContent=`No node matched "${q}".`};$("graph-q").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();$("graph-focus").click()}};$("graph-reset").onclick=()=>{S.hood=null;paint();S.network&&S.network.fit({animation:true});$("sel-note").textContent="Graph reset to full view."} }
+    function chat(){ $("chat-send").onclick=()=>{const q=$("chat-q").value.trim();if(!q)return;const p=location.protocol==="https:"?"wss":"ws";const ws=new WebSocket(`${p}://${location.host}/ws/chat`);$("chat-out").innerHTML="";$("chat-out").dataset.raw="";$("badges").innerHTML="";$("chat-status").textContent="Connecting to workflow...";ws.onopen=()=>ws.send(JSON.stringify({query:q}));ws.onmessage=e=>{const m=JSON.parse(e.data);const t=m.type||m.event||"";if(t==="routing")$("chat-status").textContent=m.message||"Routing query...";if(t==="metadata"){$("badges").innerHTML=(m.agents||[]).map(a=>`<span class="badge">${esc(a)}</span>`).join("");$("chat-status").textContent=m.message||"Streaming response..."}if(t==="chunk"){$("chat-out").dataset.raw=(($("chat-out").dataset.raw)||"")+String(m.content||"");$("chat-out").innerHTML=md($("chat-out").dataset.raw)}if(t==="done"){$("chat-status").textContent=m.message||"Completed.";if(m.answer&&!$("chat-out").dataset.raw){$("chat-out").dataset.raw=String(m.answer);$("chat-out").innerHTML=md($("chat-out").dataset.raw)}ws.close()}if(t==="error"){$("chat-status").textContent=m.message||"Workflow failed.";ws.close()}};ws.onerror=()=>{$("chat-status").textContent="WebSocket connection failed."};ws.onclose=()=>{if($("chat-status").textContent==="Connecting to workflow...")$("chat-status").textContent="Connection closed."}};$("chat-clear").onclick=()=>{$("chat-out").innerHTML="";$("chat-out").dataset.raw="";$("badges").innerHTML="";$("chat-status").textContent="Waiting for a query."} }
+    function preds(){ $("pred-run").onclick=async()=>{const body={source:$("pred-source").value,target_type:$("pred-type").value,model:$("pred-model").value,top_k:Number($("pred-topk").value||10)};$("pred-status").textContent="Running link prediction...";try{const p=await j("/predict",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});S.preds=p.output.predictions||[];$("pred-status").textContent=p.summary||"Prediction complete."; $("pred-metrics").textContent=`Confidence ${Number(p.confidence||0).toFixed(2)}`;predTable()}catch(error){S.preds=[];predTable();$("pred-status").textContent=`Prediction failed: ${errMessage(error)}`;$("pred-metrics").textContent=""}};document.querySelectorAll("[data-sort]").forEach(b=>b.onclick=()=>{const k=b.dataset.sort;S.sort={key:k,desc:S.sort.key===k?!S.sort.desc:true};predTable()}) }
+    function predTable(){const rows=[...S.preds].sort((a,b)=>{const k=S.sort.key,lv=k==="target_type"?(a.metadata?.target_type||""):a[k],rv=k==="target_type"?(b.metadata?.target_type||""):b[k];return typeof lv==="number"&&typeof rv==="number"?(S.sort.desc?rv-lv:lv-rv):(S.sort.desc?String(rv).localeCompare(String(lv)):String(lv).localeCompare(String(rv)))});$("pred-body").innerHTML=rows.map(r=>`<tr><td><button class="ghost" type="button" onclick="window.focusPred('${esc(r.target_id)}')">${esc(r.target_name)}</button></td><td>${Number(r.score).toFixed(3)}</td><td>${esc(r.metadata?.target_type||"")}</td></tr>`).join("") }
+    window.focusPred=id=>detail(id);
+    function clinical(){ $("ddi-run").onclick=async()=>{try{const p=await j("/clinical/ddi",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({drugs:csv($("ddi-drugs").value),conditions:csv($("ddi-cond").value)})});const xs=p.output.interactions||[],rs=p.output.drug_reports||[];$("ddi-out").innerHTML=[...xs.map(x=>listCard(`${x.drug_a} + ${x.drug_b}`,`${x.severity}: ${x.mechanism||"mechanism not specified"}. ${x.recommendation||""}`)),...rs.map(r=>listCard(r.drug,`Mechanisms: ${items(r.mechanisms)||"n/a"}. Side effects: ${items(r.side_effects)||"n/a"}.`))].join("")||listCard("No interactions","No interaction or safety details were returned.")}catch(error){$("ddi-out").innerHTML=listCard("Clinical error",errMessage(error))}};$("hpo-run").onclick=async()=>{try{const p=await j("/clinical/phenotypes",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({symptoms:$("dx-q").value})});$("dx-out").innerHTML=[...(p.matched_terms||[]).map(x=>listCard(x.name,`HPO ${x.hpo_id||"unknown"}; score ${Number(x.score||0).toFixed(2)}`)),...(p.disease_matches||[]).slice(0,5).map(x=>listCard(x.disease_name,`Score ${Number(x.score||0).toFixed(2)}; matched ${items(x.matched_hpo_terms)||"none"}; supporting ${items(x.supporting_terms)||"none"}`))].join("")||listCard("No phenotype matches","No phenotype matches were returned.")}catch(error){$("dx-out").innerHTML=listCard("Phenotype mapping failed",errMessage(error))}};$("dx-run").onclick=async()=>{try{const p=await j("/clinical/differential",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({symptoms:$("dx-q").value})});$("dx-out").innerHTML=(p.output.diagnoses||[]).map(x=>listCard(x.disease_name,`Score ${Number(x.score||0).toFixed(3)}; phenotypes ${items(x.matched_phenotypes)||"none"}; KG support ${items(x.kg_support)||"none"}`)).join("")||listCard("No diagnoses","No ranked differential diagnoses were returned.")}catch(error){$("dx-out").innerHTML=listCard("Differential diagnosis failed",errMessage(error))}} }
+    function analysis(){ $("ana-run").onclick=async()=>{try{const p=await j("/analysis/enrichment",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({genes:csv($("ana-genes").value)})});$("ana-out").innerHTML=[...(p.output.pathway_enrichment||[]).slice(0,8).map(x=>listCard(x.term_name,`FDR ${Number(x.fdr).toExponential(2)}; genes ${items(x.genes)||"none"}; overlap ${Number(x.overlap||0)}`)),...(p.output.crosstalk||[]).slice(0,5).map(x=>listCard(`${x.source_pathway} -> ${x.target_pathway}`,`Score ${Number(x.relation_score).toFixed(2)}; shared genes ${items(x.shared_genes)||"none"}`))].join("")||listCard("No enrichment hits","No pathway enrichments were returned.")}catch(error){$("ana-out").innerHTML=listCard("Analysis failed",errMessage(error))}};$("com-run").onclick=async()=>{try{const p=await j("/analysis/communities");$("ana-side").innerHTML=(p.communities||[]).slice(0,6).map(x=>listCard(`Community ${x.community_id}`,`Size ${x.size}; pathways ${items(x.dominant_pathways)||"none"}; diseases ${items(x.dominant_diseases)||"none"}`)).join("")||listCard("No communities","No communities were returned.")}catch(error){$("ana-side").innerHTML=listCard("Community analysis failed",errMessage(error))}};$("tar-run").onclick=async()=>{try{const p=await j("/analysis/targets?top_k=10");$("ana-side").innerHTML=(p.targets||[]).map(x=>listCard(x.gene_name,`Combined ${Number(x.combined_score).toFixed(3)}; druggability ${Number(x.druggability_score).toFixed(3)}`)).join("")||listCard("No targets","No targets were returned.")}catch(error){$("ana-side").innerHTML=listCard("Target ranking failed",errMessage(error))}} }
+    function review(){ $("rev-run").onclick=async()=>{const q=$("rev-q").value.trim();if(!q)return;$("rev-status").textContent="Generating narrative review...";try{const p=await j("/review",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({topic:q})});$("rev-status").textContent=p.output?.mode==="fast_local"?"Review ready (fast local mode).":"Review ready.";const bib=p.output?.bibliography?`\n\n${p.output.bibliography}`:"";$("rev-out").innerHTML=md((p.output?.content||p.summary||"")+bib)}catch(error){$("rev-status").textContent=`Review failed: ${errMessage(error)}`;$("rev-out").innerHTML=""}} }
+    addEventListener("DOMContentLoaded",async()=>{initTabs();initChips();graphControls();chat();preds();clinical();analysis();review();await Promise.all([health(),loadGraph()])});
+  </script>
+</body>
+</html>
