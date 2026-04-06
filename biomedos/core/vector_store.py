@@ -70,7 +70,7 @@ class ChromaVectorStore:
     def _initialize_client(self) -> None:
         """Initialize the Chroma client if the dependency is available."""
 
-        if chromadb is None:
+        if chromadb is None or self.embedding_manager is not None:
             return
 
         if self.persist_dir == ":memory:":
@@ -127,7 +127,13 @@ class ChromaVectorStore:
             }
             if vectors is not None:
                 kwargs["embeddings"] = vectors
-            self._collection.upsert(**kwargs)
+            try:
+                self._collection.upsert(**kwargs)
+            except Exception:
+                if vectors is not None:
+                    self._collection = None
+                else:
+                    raise
 
     def search(self, query: str, *, top_k: int = 5) -> list[SearchResult]:
         """Run dense vector similarity search."""
@@ -205,33 +211,37 @@ class ChromaVectorStore:
         query_vector = self.embedding_manager.encode_one(query)
 
         if self._collection is not None and self._embeddings:
-            response = self._collection.query(
-                query_embeddings=[query_vector],
-                n_results=top_k,
-                include=["documents", "metadatas", "distances"],
-            )
-            ids = response.get("ids", [[]])[0]
-            docs = response.get("documents", [[]])[0]
-            metadatas = response.get("metadatas", [[]])[0]
-            distances = response.get("distances", [[]])[0]
-            results: list[SearchResult] = []
-            for document_id, document, metadata, distance in zip(
-                ids,
-                docs,
-                metadatas,
-                distances,
-                strict=True,
-            ):
-                similarity = 1.0 / (1.0 + float(distance))
-                results.append(
-                    SearchResult(
-                        id=str(document_id),
-                        text=str(document),
-                        metadata=self._metadata_for_output(metadata),
-                        score=similarity,
-                    )
+            try:
+                response = self._collection.query(
+                    query_embeddings=[query_vector],
+                    n_results=top_k,
+                    include=["documents", "metadatas", "distances"],
                 )
-            return results
+            except Exception:
+                self._collection = None
+            else:
+                ids = response.get("ids", [[]])[0]
+                docs = response.get("documents", [[]])[0]
+                metadatas = response.get("metadatas", [[]])[0]
+                distances = response.get("distances", [[]])[0]
+                results: list[SearchResult] = []
+                for document_id, document, metadata, distance in zip(
+                    ids,
+                    docs,
+                    metadatas,
+                    distances,
+                    strict=True,
+                ):
+                    similarity = 1.0 / (1.0 + float(distance))
+                    results.append(
+                        SearchResult(
+                            id=str(document_id),
+                            text=str(document),
+                            metadata=self._metadata_for_output(metadata),
+                            score=similarity,
+                        )
+                    )
+                return results
 
         results = []
         for document_id, vector in self._embeddings.items():
