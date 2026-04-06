@@ -64,6 +64,29 @@ class _LocalWorkflowApp:
         return await self.workflow.run(query)
 
 
+@dataclass(slots=True)
+class _CompiledWorkflowApp:
+    """Typed adapter for compiled LangGraph applications."""
+
+    workflow: BiomedicalWorkflow
+    app: Any
+
+    async def ainvoke(self, input_state: WorkflowState | LangGraphState) -> WorkflowState:
+        """Invoke the compiled workflow and normalize its output."""
+
+        if isinstance(input_state, WorkflowState):
+            payload: LangGraphState = {"query": input_state.query}
+        else:
+            payload = input_state
+        result = await self.app.ainvoke(payload)
+        if isinstance(result, WorkflowState):
+            return result
+        if isinstance(result, dict):
+            return self.workflow._state_from_langgraph(result)
+        query = str(payload.get("query", ""))
+        return await self.workflow.run(query)
+
+
 class BiomedicalWorkflow:
     """Coordinate multi-agent biomedical workflows."""
 
@@ -116,7 +139,7 @@ class BiomedicalWorkflow:
         graph.add_edge("execute", "sentinel")
         graph.add_edge("sentinel", "aggregate")
         graph.add_edge("aggregate", END)
-        return graph.compile()
+        return _CompiledWorkflowApp(self, graph.compile())
 
     async def run(self, query: str) -> WorkflowState:
         """Execute the full workflow for a query."""
@@ -268,6 +291,51 @@ class BiomedicalWorkflow:
         if state.citations:
             sections.append("## Citations\n" + ", ".join(state.citations))
         return "\n\n".join(sections)
+
+    def _state_from_langgraph(self, payload: Mapping[str, object]) -> WorkflowState:
+        """Convert a LangGraph payload back into the public workflow model."""
+
+        query = str(payload.get("query", ""))
+        workflow_state = WorkflowState(query=query)
+        raw_tasks = payload.get("tasks", [])
+        raw_results = payload.get("results", {})
+
+        if isinstance(raw_tasks, list):
+            workflow_state.tasks = [
+                Task.model_validate(task_payload)
+                for task_payload in raw_tasks
+                if isinstance(task_payload, dict)
+            ]
+        if isinstance(raw_results, dict):
+            workflow_state.results = {
+                str(task_id): AgentResult.model_validate(result_payload)
+                for task_id, result_payload in raw_results.items()
+                if isinstance(result_payload, dict)
+            }
+        visited_task_ids = [
+            "task-router",
+            *[task.id for task in workflow_state.tasks],
+            "task-sentinel",
+        ]
+        workflow_state.visited_agents = [
+            workflow_state.results[task_id].agent_name
+            for task_id in visited_task_ids
+            if task_id in workflow_state.results
+        ]
+        workflow_state.citations = sorted(
+            {
+                citation
+                for result in workflow_state.results.values()
+                for citation in result.citations
+            }
+        )
+        final_response = payload.get("final_response")
+        workflow_state.final_response = (
+            str(final_response)
+            if isinstance(final_response, str)
+            else self._aggregate(workflow_state, workflow_state.tasks)
+        )
+        return workflow_state
 
     async def _langgraph_route(self, state: LangGraphState) -> LangGraphState:
         """LangGraph node: route and decompose tasks."""

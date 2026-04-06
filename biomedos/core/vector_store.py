@@ -41,6 +41,9 @@ class SearchResult(BaseModel):
 class ChromaVectorStore:
     """Thin wrapper around ChromaDB with a BM25 hybrid search layer."""
 
+    _EMPTY_METADATA_SENTINEL_KEY = "_biomedos_empty_metadata"
+    _EMPTY_METADATA_SENTINEL_VALUE = True
+
     def __init__(
         self,
         persist_dir: str | None = None,
@@ -102,7 +105,7 @@ class ChromaVectorStore:
 
         ids = [document.id for document in documents]
         texts = [document.text for document in documents]
-        metadatas = [self._sanitize_metadata(document.metadata) for document in documents]
+        metadatas = [self._metadata_for_storage(document.metadata) for document in documents]
 
         vectors: list[list[float]] | None = None
         if embeddings is not None:
@@ -224,7 +227,7 @@ class ChromaVectorStore:
                     SearchResult(
                         id=str(document_id),
                         text=str(document),
-                        metadata=self._sanitize_metadata(metadata or {}),
+                        metadata=self._metadata_for_output(metadata),
                         score=similarity,
                     )
                 )
@@ -277,6 +280,28 @@ class ChromaVectorStore:
                 cleaned[str(key)] = value
             else:
                 cleaned[str(key)] = str(value)
+        return cleaned
+
+    @classmethod
+    def _metadata_for_storage(cls, metadata: dict[str, object] | object) -> dict[str, object]:
+        """Return Chroma-compatible metadata with a non-empty fallback payload."""
+
+        cleaned = cls._sanitize_metadata(metadata)
+        if cleaned:
+            return cleaned
+        return {cls._EMPTY_METADATA_SENTINEL_KEY: cls._EMPTY_METADATA_SENTINEL_VALUE}
+
+    @classmethod
+    def _metadata_for_output(cls, metadata: dict[str, object] | object) -> dict[str, object]:
+        """Strip internal placeholder metadata before returning search results."""
+
+        cleaned = cls._sanitize_metadata(metadata)
+        if (
+            len(cleaned) == 1
+            and cleaned.get(cls._EMPTY_METADATA_SENTINEL_KEY) is cls._EMPTY_METADATA_SENTINEL_VALUE
+        ):
+            return {}
+        cleaned.pop(cls._EMPTY_METADATA_SENTINEL_KEY, None)
         return cleaned
 
     @staticmethod

@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from biomedos.data.pubmed import PubMedArticle
+from biomedos.graph.builder import KnowledgeGraph
+from biomedos.graph.schema import BioEdge, DiseaseNode, DrugNode, EdgeType, GeneNode, PathwayNode
 
 
 def demo_articles() -> list[PubMedArticle]:
@@ -84,4 +88,118 @@ def demo_articles() -> list[PubMedArticle]:
     ]
 
 
-__all__ = ["demo_articles"]
+def build_demo_graph(genes: Sequence[str]) -> KnowledgeGraph:
+    """Build a compact demo graph from a short gene list.
+
+    Args:
+        genes: Gene symbols used to seed the demo graph.
+
+    Returns:
+        A small but non-trivial biomedical knowledge graph suitable for local demos.
+    """
+
+    graph = KnowledgeGraph()
+    diseases = [
+        DiseaseNode(id="disease:lung_cancer", name="Lung Cancer", efo_id="EFO:0001071"),
+        DiseaseNode(id="disease:fibrosis", name="Fibrosis", efo_id="EFO:0000400"),
+        DiseaseNode(id="disease:breast_cancer", name="Breast Cancer", efo_id="EFO:0000305"),
+        DiseaseNode(id="disease:glioblastoma", name="Glioblastoma", efo_id="EFO:0000519"),
+    ]
+    pathways = [
+        PathwayNode(id="pathway:egfr", name="EGFR Signaling", reactome_id="R-HSA-177929"),
+        PathwayNode(id="pathway:dna", name="DNA Repair", reactome_id="R-HSA-73894"),
+        PathwayNode(id="pathway:ecm", name="ECM Remodeling", reactome_id="R-HSA-1474244"),
+        PathwayNode(id="pathway:jak", name="JAK-STAT", reactome_id="R-HSA-6785807"),
+    ]
+    drugs = [
+        DrugNode(id="drug:gefitinib", name="Gefitinib", chembl_id="CHEMBL939", max_phase=4),
+        DrugNode(id="drug:olaparib", name="Olaparib", chembl_id="CHEMBL521686", max_phase=4),
+        DrugNode(id="drug:pirfenidone", name="Pirfenidone", chembl_id="CHEMBL1744", max_phase=4),
+        DrugNode(id="drug:trametinib", name="Trametinib", chembl_id="CHEMBL2103875", max_phase=4),
+        DrugNode(id="drug:metformin", name="Metformin", chembl_id="CHEMBL1431", max_phase=4),
+    ]
+    for node in [*diseases, *pathways, *drugs]:
+        graph.merge_node(node)
+
+    disease_cycle = [d.id for d in diseases]
+    pathway_cycle = [p.id for p in pathways]
+    gene_list = list(genes)
+    for index, symbol in enumerate(gene_list):
+        gene_id = f"gene:{symbol.lower()}"
+        graph.merge_node(
+            GeneNode(
+                id=gene_id,
+                name=symbol,
+                symbol=symbol,
+                chromosome=str((index % 22) + 1),
+                description=f"{symbol} demo biomarker",
+                sources=["demo"],
+            )
+        )
+        graph.merge_edge(
+            BioEdge(
+                source_id=gene_id,
+                target_id=disease_cycle[index % len(disease_cycle)],
+                edge_type=EdgeType.GENE_DISEASE,
+                score=0.65 + (index % 4) * 0.08,
+                sources=["demo"],
+            )
+        )
+        graph.merge_edge(
+            BioEdge(
+                source_id=gene_id,
+                target_id=pathway_cycle[index % len(pathway_cycle)],
+                edge_type=EdgeType.GENE_PATHWAY,
+                score=0.62 + (index % 3) * 0.1,
+                sources=["demo"],
+            )
+        )
+        if index < len(gene_list) - 1:
+            graph.merge_edge(
+                BioEdge(
+                    source_id=gene_id,
+                    target_id=f"gene:{gene_list[index + 1].lower()}",
+                    edge_type=EdgeType.GENE_GENE,
+                    score=0.58 + (index % 5) * 0.06,
+                    sources=["demo"],
+                )
+            )
+
+    targets = {
+        "drug:gefitinib": ["gene:egfr", "gene:alk"],
+        "drug:olaparib": ["gene:brca1", "gene:brca2", "gene:tp53"],
+        "drug:pirfenidone": ["gene:loxl1", "gene:loxl2", "gene:loxl3"],
+        "drug:trametinib": ["gene:braf", "gene:kras", "gene:egfr"],
+        "drug:metformin": ["gene:mtor", "gene:pik3ca"],
+    }
+    treated = {
+        "drug:gefitinib": "disease:lung_cancer",
+        "drug:olaparib": "disease:breast_cancer",
+        "drug:pirfenidone": "disease:fibrosis",
+        "drug:trametinib": "disease:glioblastoma",
+        "drug:metformin": "disease:glioblastoma",
+    }
+    for drug_id, gene_ids in targets.items():
+        for gene_id in gene_ids:
+            graph.merge_edge(
+                BioEdge(
+                    source_id=drug_id,
+                    target_id=gene_id,
+                    edge_type=EdgeType.DRUG_TARGET,
+                    score=0.78,
+                    sources=["demo"],
+                )
+            )
+        graph.merge_edge(
+            BioEdge(
+                source_id=drug_id,
+                target_id=treated[drug_id],
+                edge_type=EdgeType.DRUG_DISEASE,
+                score=0.84,
+                sources=["demo"],
+            )
+        )
+    return graph
+
+
+__all__ = ["build_demo_graph", "demo_articles"]

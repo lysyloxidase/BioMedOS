@@ -24,7 +24,7 @@ from biomedos.clinical.evidence_levels import GradeEvidenceClassifier
 from biomedos.config import Settings, get_settings, resolve_project_path
 from biomedos.core.llm_client import OllamaClient
 from biomedos.core.vector_store import ChromaVectorStore, VectorDocument
-from biomedos.demo_data import demo_articles
+from biomedos.demo_data import build_demo_graph, demo_articles
 from biomedos.graph.builder import KnowledgeGraph
 from biomedos.graph.schema import EdgeType, NodeType
 from biomedos.orchestration.state import AgentResult, Task, TaskType, WorkflowState
@@ -80,6 +80,8 @@ def _load_or_create_graph(settings: Settings) -> KnowledgeGraph:
     graph_path = _resolved_graph_path(settings)
     if graph_path.exists():
         return KnowledgeGraph.load(graph_path)
+    if graph_path.name == "demo_knowledge_graph.gpickle":
+        return build_demo_graph(settings.DEFAULT_GENES[:20])
     return KnowledgeGraph()
 
 
@@ -90,7 +92,7 @@ def _resolved_graph_path(settings: Settings) -> Path:
     if graph_path.exists():
         return graph_path
     demo_graph_path = resolve_project_path("data/demo_knowledge_graph.gpickle")
-    if graph_path.name == "knowledge_graph.gpickle" and demo_graph_path.exists():
+    if graph_path.name == "knowledge_graph.gpickle":
         return demo_graph_path
     return graph_path
 

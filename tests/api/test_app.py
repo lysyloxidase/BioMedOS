@@ -40,7 +40,7 @@ def test_health_endpoint_reports_absolute_paths(sample_kg: KnowledgeGraph) -> No
     assert response.status_code == 200
     payload = response.json()
     assert payload["fast_local_mode"] is True
-    assert payload["graph_path"].endswith("data\\knowledge_graph.gpickle")
+    assert payload["graph_path"].replace("\\", "/").endswith("data/knowledge_graph.gpickle")
     assert payload["vector_store_docs"] == 0
 
 
@@ -64,7 +64,7 @@ def test_app_falls_back_to_demo_graph_when_default_graph_is_missing() -> None:
     assert payload["graph"]["nodes"] > 0
     assert payload["graph"]["edges"] > 0
     assert payload["vector_store_docs"] >= 6
-    assert payload["graph_path"].endswith("data\\demo_knowledge_graph.gpickle")
+    assert payload["graph_path"].replace("\\", "/").endswith("data/demo_knowledge_graph.gpickle")
 
 
 def test_websocket_chat_emits_type_compatible_events(sample_kg: KnowledgeGraph) -> None:
