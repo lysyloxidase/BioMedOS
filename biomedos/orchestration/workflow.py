@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+import importlib
 from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Any, TypedDict
 
 from biomedos.agents.base import BaseAgent
 from biomedos.agents.clinician import ClinicianAgent
@@ -26,12 +28,25 @@ from biomedos.graph.builder import KnowledgeGraph
 from biomedos.orchestration.decomposer import QueryDecomposer
 from biomedos.orchestration.state import AgentResult, Task, TaskType, WorkflowState
 
+ImportedStateGraph: Any | None = None
 try:  # pragma: no cover - optional dependency at runtime
-    from langgraph.graph import END, START, StateGraph  # type: ignore[import-not-found]
+    _langgraph_graph = importlib.import_module("langgraph.graph")
 except ImportError:  # pragma: no cover - exercised by unit tests
     END = "__end__"
     START = "__start__"
-    StateGraph = None
+else:
+    END = str(_langgraph_graph.END)
+    START = str(_langgraph_graph.START)
+    ImportedStateGraph = _langgraph_graph.StateGraph
+
+
+class LangGraphState(TypedDict, total=False):
+    """Minimal state payload used by the LangGraph workflow."""
+
+    query: str
+    tasks: list[dict[str, object]]
+    results: dict[str, object]
+    final_response: str
 
 
 @dataclass(slots=True)
@@ -40,7 +55,7 @@ class _LocalWorkflowApp:
 
     workflow: BiomedicalWorkflow
 
-    async def ainvoke(self, input_state: WorkflowState | dict[str, object]) -> WorkflowState:
+    async def ainvoke(self, input_state: WorkflowState | LangGraphState) -> WorkflowState:
         """Invoke the workflow with a query or a prepared state."""
 
         if isinstance(input_state, WorkflowState):
@@ -88,10 +103,10 @@ class BiomedicalWorkflow:
             A workflow graph object.
         """
 
-        if StateGraph is None:
+        if ImportedStateGraph is None:
             return _LocalWorkflowApp(self)
 
-        graph = StateGraph(dict[str, object])
+        graph = ImportedStateGraph(LangGraphState)
         graph.add_node("route", self._langgraph_route)
         graph.add_node("execute", self._langgraph_execute)
         graph.add_node("sentinel", self._langgraph_sentinel)
@@ -254,7 +269,7 @@ class BiomedicalWorkflow:
             sections.append("## Citations\n" + ", ".join(state.citations))
         return "\n\n".join(sections)
 
-    async def _langgraph_route(self, state: dict[str, object]) -> dict[str, object]:
+    async def _langgraph_route(self, state: LangGraphState) -> LangGraphState:
         """LangGraph node: route and decompose tasks."""
 
         query = str(state.get("query", ""))
@@ -273,7 +288,7 @@ class BiomedicalWorkflow:
             "results": {"task-router": result.model_dump(mode="python")},
         }
 
-    async def _langgraph_execute(self, state: dict[str, object]) -> dict[str, object]:
+    async def _langgraph_execute(self, state: LangGraphState) -> LangGraphState:
         """LangGraph node: execute specialist tasks."""
 
         query = str(state.get("query", ""))
@@ -289,7 +304,7 @@ class BiomedicalWorkflow:
             normalized_results[result.task_id] = result.model_dump(mode="python")
         return {**state, "results": normalized_results}
 
-    async def _langgraph_sentinel(self, state: dict[str, object]) -> dict[str, object]:
+    async def _langgraph_sentinel(self, state: LangGraphState) -> LangGraphState:
         """LangGraph node: run sentinel verification."""
 
         query = str(state.get("query", ""))
@@ -308,7 +323,7 @@ class BiomedicalWorkflow:
         normalized_results[sentinel_task.id] = sentinel_result.model_dump(mode="python")
         return {**state, "results": normalized_results}
 
-    async def _langgraph_aggregate(self, state: dict[str, object]) -> dict[str, object]:
+    async def _langgraph_aggregate(self, state: LangGraphState) -> LangGraphState:
         """LangGraph node: aggregate final output."""
 
         query = str(state.get("query", ""))

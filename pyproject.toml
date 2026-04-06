@@ -62,7 +62,6 @@ module = [
     "fastapi",
     "fastapi.*",
     "httpx",
-    "httpx.*",
     "networkx",
     "numpy",
     "numpy.*",
